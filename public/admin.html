@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B3 Bot Admin</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700&family=Roboto:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1a1a1a;--mut:#6b7280;--line:#e5e7eb;--pri:#00adef;--bad:#d92d20;--ok:#12a150}
+@media (prefers-color-scheme:dark){:root{--bg:#111318;--card:#1b1e26;--ink:#eceef2;--mut:#9aa1ae;--line:#2c313c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Roboto,system-ui,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:16px}
+h1{font:700 22px Barlow,Roboto,sans-serif;text-transform:uppercase;letter-spacing:.03em;margin:0}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}
+nav button,.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
+nav button.on,.btn.pri{background:var(--pri);color:#0f0f0f;border-color:var(--pri);font-weight:500}
+.btn.bad{color:var(--bad)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+label{display:block;margin:10px 0 4px;font-weight:600}
+input,textarea,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:110px;resize:vertical}
+input[type=color]{height:36px;padding:2px;cursor:pointer}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:150px}
+table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.mut{color:var(--mut)}.pill{padding:3px 10px;border-radius:99px;color:#fff;font-weight:600}
+.on-pill{background:var(--ok)}.off-pill{background:var(--bad)}
+.log{height:300px;overflow:auto;background:var(--bg);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.m{padding:7px 10px;border-radius:10px;max-width:85%;white-space:pre-wrap}.m.me{align-self:flex-end;background:var(--pri);color:#0f0f0f}.m.bot{background:var(--card);border:1px solid var(--line)}
+pre{background:var(--bg);padding:10px;border-radius:8px;overflow:auto}
+#login{max-width:340px;margin:20vh auto}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div id="login" class="card hide">
+  <h1>B3 Bot Admin</h1>
+  <label>Password</label><input id="pw" type="password" autofocus>
+  <p class="bad" id="lerr" style="color:var(--bad)"></p>
+  <button class="btn pri" id="lbtn">Log in</button>
+</div>
+
+<div id="app" class="hide">
+  <div class="row" style="align-items:center">
+    <h1>B3 Bot Admin</h1>
+    <div style="text-align:right;flex:none">
+      <span id="pill" class="pill"></span>
+      <button class="btn" id="toggle"></button>
+      <button class="btn" id="logout">Log out</button>
+    </div>
+  </div>
+  <p id="nokey" class="hide" style="color:var(--bad)">GROQ_API_KEY is not set in .env: the bot cannot answer yet.</p>
+
+  <nav id="tabs"></nav>
+
+  <section data-tab="Settings">
+    <div class="card">
+      <div class="row">
+        <div><label>Bot name</label><input id="s_botName"></div>
+        <div><label>Brand color</label><input id="s_color" type="color"></div>
+        <div><label>Groq model</label><input id="s_model" list="models"><datalist id="models"><option>openai/gpt-oss-120b<option>openai/gpt-oss-20b<option>qwen/qwen3.8-27b</datalist></div>
+        <div><label>Temperature</label><input id="s_temperature" type="number" step="0.1" min="0" max="1"></div>
+      </div>
+      <label>Greeting</label><input id="s_greeting">
+      <div class="row">
+        <div><label>When OFF, widget should</label><select id="s_offlineMode"><option value="message">show the offline message</option><option value="hide">be hidden</option></select></div>
+        <div><label>Offline message</label><input id="s_offlineMessage"></div>
+      </div>
+      <label>Allowed website origins (space separated, empty = any)</label><input id="s_allowedOrigins" placeholder="https://b3sciences.com https://www.b3sciences.com">
+      <label>System prompt (bot behaviour)</label><textarea id="s_systemPrompt" style="min-height:220px"></textarea>
+      <p><button class="btn pri" id="saveS">Save settings</button> <span id="saved" class="mut"></span></p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">Embed on WordPress</h3>
+      <p>Paste this before &lt;/body&gt; (Appearance → Theme File Editor → footer, or a plugin such as "WPCode" / "Insert Headers and Footers"):</p>
+      <pre id="embed"></pre>
+      <p class="mut">Bot server must be reachable over HTTPS from the website.</p>
+    </div>
+  </section>
+
+  <section data-tab="Training">
+    <div class="card">
+      <h3 style="margin-top:0">Add knowledge</h3>
+      <div class="row"><div><label>Title</label><input id="k_title" placeholder="e.g. Returns policy"></div>
+      <div><label>Or upload files (.txt .md .csv .json)</label><input id="k_file" type="file" multiple></div></div>
+      <label>Text, FAQ or Q&amp;A (the bot uses this before anything else you wrote earlier)</label>
+      <textarea id="k_text" placeholder="Q: Do you ship to Canada?&#10;A: Yes, ..."></textarea>
+      <p><button class="btn pri" id="k_add">Train</button> <span id="k_msg" class="mut"></span></p>
+    </div>
+    <div class="card"><h3 style="margin-top:0">Trained sources</h3><div id="k_sources"></div>
+      <h3>Your custom entries</h3><div id="k_items"></div></div>
+  </section>
+
+  <section data-tab="Invoices">
+    <div class="card">
+      <h3 style="margin-top:0">Add / update invoice</h3>
+      <div class="row">
+        <div><label>Invoice #</label><input id="i_invoiceNumber"></div>
+        <div><label>Customer email</label><input id="i_email"></div>
+        <div><label>Name</label><input id="i_name"></div>
+        <div><label>Date</label><input id="i_date" placeholder="2026-10-20"></div>
+      </div>
+      <div class="row">
+        <div><label>Items</label><input id="i_items" placeholder="B3 Bands set x1"></div>
+        <div><label>Total</label><input id="i_total" placeholder="$479.99"></div>
+        <div><label>Status</label><input id="i_status" placeholder="Shipped"></div>
+        <div><label>Tracking</label><input id="i_tracking"></div>
+      </div>
+      <p><button class="btn pri" id="i_add">Save invoice</button></p>
+      <label>Bulk import CSV (columns: invoice, email, name, date, items, total, status, tracking, notes)</label>
+      <input id="i_csv" type="file" accept=".csv">
+      <p class="mut">The bot only reveals an invoice when the visitor gives the invoice number AND the matching email.</p>
+    </div>
+    <div class="card"><div id="i_list"></div></div>
+  </section>
+
+  <section data-tab="Test chat">
+    <div class="card">
+      <p class="mut">Works even while the public bot is OFF.</p>
+      <div class="log" id="t_log"></div>
+      <div class="row" style="margin-top:8px"><input id="t_in" placeholder="Ask something..."><button class="btn pri" id="t_send" style="flex:none">Send</button></div>
+      <p class="mut" id="t_ctx"></p>
+    </div>
+  </section>
+
+  <section data-tab="Conversations">
+    <div class="card" id="c_list"></div>
+  </section>
+</div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s)
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+const api = async (path, method = 'GET', body) => {
+  const r = await fetch('/api/admin' + path, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
+  if (r.status === 401 && path !== '/login') { show(false); throw new Error('login') }
+  return r.json()
+}
+const S = ['botName', 'color', 'model', 'temperature', 'greeting', 'offlineMode', 'offlineMessage', 'allowedOrigins', 'systemPrompt']
+let settings
+const tabs = [...document.querySelectorAll('section')].map((s) => s.dataset.tab)
+
+function show(inApp) {
+  $('#app').classList.toggle('hide', !inApp)
+  $('#login').classList.toggle('hide', inApp)
+}
+function tab(name) {
+  document.querySelectorAll('section').forEach((s) => s.classList.toggle('hide', s.dataset.tab !== name))
+  document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.textContent === name))
+  if (name === 'Training') loadK()
+  if (name === 'Invoices') loadI()
+  if (name === 'Conversations') loadC()
+}
+$('#tabs').innerHTML = tabs.map((t) => `<button>${t}</button>`).join('')
+$('#tabs').onclick = (e) => e.target.tagName === 'BUTTON' && tab(e.target.textContent)
+
+function renderStatus() {
+  $('#pill').textContent = settings.enabled ? 'Chatbot ON' : 'Chatbot OFF'
+  $('#pill').className = 'pill ' + (settings.enabled ? 'on-pill' : 'off-pill')
+  $('#toggle').textContent = settings.enabled ? 'Turn OFF' : 'Turn ON'
+}
+async function boot() {
+  try {
+    const d = await api('/settings')
+    settings = d.settings
+    show(true)
+    $('#nokey').classList.toggle('hide', d.hasKey)
+    S.forEach((k) => ($('#s_' + k).value = settings[k]))
+    $('#embed').textContent = `<script src="${location.origin}/widget.js" defer><\/script>`
+    renderStatus()
+    tab('Settings')
+  } catch { show(false) }
+}
+$('#lbtn').onclick = async () => {
+  const r = await api('/login', 'POST', { password: $('#pw').value })
+  if (r.ok) boot(); else $('#lerr').textContent = r.error
+}
+$('#pw').onkeydown = (e) => e.key === 'Enter' && $('#lbtn').click()
+$('#logout').onclick = async () => { await api('/logout', 'POST'); show(false) }
+$('#toggle').onclick = async () => { settings.enabled = (await api('/toggle', 'POST', { enabled: !settings.enabled })).enabled; renderStatus() }
+$('#saveS').onclick = async () => {
+  const b = {}
+  S.forEach((k) => (b[k] = $('#s_' + k).value))
+  settings = (await api('/settings', 'PUT', b)).settings
+  $('#saved').textContent = 'Saved'
+  setTimeout(() => ($('#saved').textContent = ''), 2000)
+}
+
+// training
+async function loadK() {
+  const d = await api('/knowledge')
+  $('#k_sources').innerHTML = '<table>' + d.sources.map((s) => `<tr><td>${esc(s.source)}</td><td class="mut">${s.chunks} chunks</td><td>${s.builtin ? '<span class="mut">read-only</span>' : `<button class="btn bad" data-src="${esc(s.source)}">Remove</button>`}</td></tr>`).join('') + '</table>'
+  $('#k_items').innerHTML = d.items.length ? '<table>' + d.items.map((i) => `<tr><td><b>${esc(i.title)}</b><br><span class="mut">${esc(i.text.slice(0, 160))}</span></td><td><button class="btn bad" data-id="${i.id}">Delete</button></td></tr>`).join('') + '</table>' : '<p class="mut">None yet.</p>'
+}
+$('#k_sources').onclick = async (e) => { const s = e.target.dataset.src; if (s && confirm('Remove all "' + s + '" knowledge?')) { await api('/knowledge/source/' + encodeURIComponent(s), 'DELETE'); loadK() } }
+$('#k_items').onclick = async (e) => { const id = e.target.dataset.id; if (id) { await api('/knowledge/' + id, 'DELETE'); loadK() } }
+$('#k_add').onclick = async () => {
+  let n = 0
+  const title = $('#k_title').value || 'Custom note'
+  if ($('#k_text').value.trim()) n += (await api('/knowledge', 'POST', { title, text: $('#k_text').value })).added || 0
+  for (const f of $('#k_file').files) n += (await api('/knowledge', 'POST', { title: f.name, source: 'file', text: await f.text() })).added || 0
+  $('#k_msg').textContent = n + ' chunks trained'
+  $('#k_text').value = ''; $('#k_file').value = ''
+  loadK()
+}
+
+// invoices
+const IF = ['invoiceNumber', 'email', 'name', 'date', 'items', 'total', 'status', 'tracking']
+async function loadI() {
+  const list = await api('/invoices')
+  $('#i_list').innerHTML = list.length ? '<table><tr>' + IF.map((f) => `<th>${f}</th>`).join('') + '<th></th></tr>' + list.map((i) => '<tr>' + IF.map((f) => `<td>${esc(i[f])}</td>`).join('') + `<td><button class="btn bad" data-id="${i.id}">×</button></td></tr>`).join('') + '</table>' : '<p class="mut">No invoices yet.</p>'
+}
+$('#i_list').onclick = async (e) => { const id = e.target.dataset.id; if (id && confirm('Delete invoice?')) { await api('/invoices/' + id, 'DELETE'); loadI() } }
+$('#i_add').onclick = async () => {
+  const b = {}
+  IF.forEach((f) => (b[f] = $('#i_' + f).value))
+  if (!b.invoiceNumber) return alert('Invoice # required')
+  await api('/invoices', 'POST', b)
+  IF.forEach((f) => ($('#i_' + f).value = ''))
+  loadI()
+}
+$('#i_csv').onchange = async (e) => { const r = await api('/invoices', 'POST', { csv: await e.target.files[0].text() }); alert(r.saved + ' invoices imported'); e.target.value = ''; loadI() }
+
+// test chat
+const hist = []
+const addMsg = (t, c) => { const d = document.createElement('div'); d.className = 'm ' + c; d.textContent = t.replace(/\*\*/g, ''); $('#t_log').appendChild(d); $('#t_log').scrollTop = 1e9; return d }
+async function send() {
+  const t = $('#t_in').value.trim(); if (!t) return
+  $('#t_in').value = ''; addMsg(t, 'me'); hist.push({ role: 'user', content: t })
+  const w = addMsg('…', 'bot')
+  const r = await api('/chat', 'POST', { messages: hist })
+  w.textContent = r.reply || r.error
+  if (r.reply) hist.push({ role: 'assistant', content: r.reply })
+  $('#t_ctx').textContent = r.context ? 'Sources used: ' + r.context.join(' | ') : ''
+}
+$('#t_send').onclick = send
+$('#t_in').onkeydown = (e) => e.key === 'Enter' && send()
+
+// conversations
+async function loadC() {
+  const list = await api('/conversations')
+  $('#c_list').innerHTML = list.length ? list.map((c) => `<details><summary>${esc(c.started.slice(0, 16).replace('T', ' '))} · ${c.messages.length} msgs · ${esc(c.messages[0]?.content.slice(0, 70))}</summary>${c.messages.map((m) => `<p><b>${m.role === 'user' ? 'Visitor' : 'Bot'}:</b> ${esc(m.content)}</p>`).join('')}</details>`).join('') : '<p class="mut">No conversations yet.</p>'
+}
+
+boot()
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/admin", "destination": "/admin.html" }
+  ],
+  "redirects": [{ "source": "/", "destination": "/admin", "permanent": false }],
+  "functions": { "api/index.js": { "includeFiles": "data/site.json", "maxDuration": 30 } }
+}
