@@ -4,8 +4,15 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const URL_ = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL
-const TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN
+// Vercel's Upstash integration can add a custom prefix (e.g. STORAGE_KV_REST_API_URL), so match by suffix
+const envFind = (re) => {
+  const k = Object.keys(process.env).find((n) => re.test(n) && process.env[n])
+  return k ? process.env[k] : undefined
+}
+const URL_ = envFind(/(^|_)(KV_REST_API_URL|REDIS_REST_URL|REST_API_URL)$/)
+const TOKEN = envFind(/(^|_)(KV_REST_API_TOKEN|REDIS_REST_TOKEN|REST_API_TOKEN)$/)
+
+export const redisConfigured = !!(URL_ && TOKEN)
 
 const file = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'data', 'local-db.json')
 let mem

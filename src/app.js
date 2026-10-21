@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
-import { cmd } from './db.js'
+import { cmd, redisConfigured } from './db.js'
 import { getSettings, updateSettings, uid } from './store.js'
 import * as K from './knowledge.js'
 import * as I from './invoices.js'
@@ -34,6 +34,13 @@ const limited = (key, max, windowMs) => {
   return arr.length > max
 }
 const ipOf = (c) => c.req.header('x-forwarded-for')?.split(',')[0].trim() || 'local'
+
+// quick diagnostics, no secrets: which pieces are configured and does Redis answer
+app.get('/api/health', async (c) => {
+  let redis = 'ok'
+  try { await cmd('GET', 'health-check') } catch (e) { redis = e.message.slice(0, 120) }
+  return c.json({ redisConfigured, redis, groqKey: !!process.env.GROQ_API_KEY, adminPasswordSet: !!process.env.ADMIN_PASSWORD })
+})
 
 // ---------- public API (used by the embedded widget) ----------
 app.use('/api/public/*', async (c, next) => {
