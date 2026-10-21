@@ -179,7 +179,8 @@ $('#lbtn').onclick = async () => {
   const r = await api('/login', 'POST', { username: $('#un').value, password: $('#pw').value })
   if (r.ok) boot(); else $('#lerr').textContent = r.error
 }
-$('#pw').onkeydown = $('#un').onkeydown = (e) => e.key === 'Enter' && $('#lbtn').click()
+// block braces: an arrow returning false from onkeydown would cancel every keystroke
+$('#pw').onkeydown = $('#un').onkeydown = (e) => { if (e.key === 'Enter') $('#lbtn').click() }
 $('#logout').onclick = async () => { await api('/logout', 'POST'); show(false) }
 $('#toggle').onclick = async () => { settings.enabled = (await api('/toggle', 'POST', { enabled: !settings.enabled })).enabled; renderStatus() }
 $('#saveS').onclick = async () => {
@@ -238,7 +239,7 @@ async function send() {
   $('#t_ctx').textContent = r.context ? 'Sources used: ' + r.context.join(' | ') : ''
 }
 $('#t_send').onclick = send
-$('#t_in').onkeydown = (e) => e.key === 'Enter' && send()
+$('#t_in').onkeydown = (e) => { if (e.key === 'Enter') send() }
 
 // conversations
 async function loadC() {
