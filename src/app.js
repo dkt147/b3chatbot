@@ -7,6 +7,7 @@ import * as K from './knowledge.js'
 import * as I from './invoices.js'
 import { reply } from './chat.js'
 
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'change-me'
 const SECRET = process.env.SESSION_SECRET || crypto.createHash('sha256').update(ADMIN_PASSWORD + 'b3bot').digest('hex')
 if (ADMIN_PASSWORD === 'change-me') console.warn('WARNING: set ADMIN_PASSWORD')
@@ -73,10 +74,12 @@ app.post('/api/public/chat', async (c) => {
 // ---------- admin API ----------
 app.post('/api/admin/login', async (c) => {
   if (limited('login' + ipOf(c), 8, 600_000)) return c.json({ error: 'Too many attempts' }, 429)
-  const { password } = await c.req.json().catch(() => ({}))
-  const a = crypto.createHash('sha256').update(String(password)).digest()
-  const b = crypto.createHash('sha256').update(ADMIN_PASSWORD).digest()
-  if (!crypto.timingSafeEqual(a, b)) return c.json({ error: 'Wrong password' }, 401)
+  const { username, password } = await c.req.json().catch(() => ({}))
+  const h = (v) => crypto.createHash('sha256').update(String(v ?? '')).digest()
+  // compare both fields without short-circuiting so timing doesn't reveal which was wrong
+  const okUser = crypto.timingSafeEqual(h(username), h(ADMIN_USERNAME))
+  const okPass = crypto.timingSafeEqual(h(password), h(ADMIN_PASSWORD))
+  if (!(okUser && okPass)) return c.json({ error: 'Wrong username or password' }, 401)
   setCookie(c, 'b3admin', sign(Date.now() + 12 * 3600_000), { httpOnly: true, secure: !!process.env.VERCEL, sameSite: 'Lax', path: '/', maxAge: 12 * 3600 })
   return c.json({ ok: true })
 })

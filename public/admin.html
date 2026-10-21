@@ -37,7 +37,8 @@ pre{background:var(--bg);padding:10px;border-radius:8px;overflow:auto}
 
 <div id="login" class="card hide">
   <h1>B3 Bot Admin</h1>
-  <label>Password</label><input id="pw" type="password" autofocus>
+  <label>Username</label><input id="un" autocomplete="username" autofocus>
+  <label>Password</label><input id="pw" type="password" autocomplete="current-password">
   <p class="bad" id="lerr" style="color:var(--bad)"></p>
   <button class="btn pri" id="lbtn">Log in</button>
 </div>
@@ -175,10 +176,10 @@ async function boot() {
   } catch { show(false) }
 }
 $('#lbtn').onclick = async () => {
-  const r = await api('/login', 'POST', { password: $('#pw').value })
+  const r = await api('/login', 'POST', { username: $('#un').value, password: $('#pw').value })
   if (r.ok) boot(); else $('#lerr').textContent = r.error
 }
-$('#pw').onkeydown = (e) => e.key === 'Enter' && $('#lbtn').click()
+$('#pw').onkeydown = $('#un').onkeydown = (e) => e.key === 'Enter' && $('#lbtn').click()
 $('#logout').onclick = async () => { await api('/logout', 'POST'); show(false) }
 $('#toggle').onclick = async () => { settings.enabled = (await api('/toggle', 'POST', { enabled: !settings.enabled })).enabled; renderStatus() }
 $('#saveS').onclick = async () => {
